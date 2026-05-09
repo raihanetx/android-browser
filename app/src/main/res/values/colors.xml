@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Material Design 3 Color Scheme -->
+    <color name="purple_200">#FFBB86FC</color>
+    <color name="purple_500">#FF6200EE</color>
+    <color name="purple_700">#FF3700B3</color>
+    <color name="teal_200">#FF03DAC5</color>
+    <color name="teal_700">#FF018786</color>
+
+    <!-- Primary Colors -->
+    <color name="primary">#FF0057D9</color>
+    <color name="primary_dark">#FF0043A6</color>
+    <color name="primary_light">#FF4D8EFF</color>
+    <color name="secondary">#FF00C896</color>
+
+    <!-- Status bar / System UI -->
+    <color name="status_bar">#FF0057D9</color>
+    <color name="navigation_bar">#FF0F0F0F</color>
+
+    <!-- Surface Colors -->
+    <color name="surface">#FFFFFAFA</color>
+    <color name="surface_dark">#FF1F1F1F</color>
+    <color name="background">#FFFFFFFF</color>
+    <color name="background_dark">#FF121212</color>
+
+    <!-- Text Colors -->
+    <color name="on_primary">#FFFFFFFF</color>
+    <color name="on_secondary">#FF000000</color>
+    <color name="on_background">#FF000000</color>
+    <color name="on_surface">#FF000000</color>
+    <color name="on_background_dark">#FFFFFFFF</color>
+    <color name="on_surface_dark">#FFFFFFFF</color>
+
+    <!-- Additional -->
+    <color name="error">#FFD32F2F</color>
+    <color name="success">#FF4CAF50</color>
+    <color name="warning">#FFFFA726</color>
+
+    <!-- WebView -->
+    <color name="webview_background">#FFFFFFFF</color>
+    <color name="progress_bar">#FF0057D9</color>
+    <color name="progress_bar_background">#FFE0E0E0</color>
+</resources>
