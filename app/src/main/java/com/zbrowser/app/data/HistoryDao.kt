@@ -33,4 +33,8 @@ interface HistoryDao {
 
     @Query("SELECT COUNT(*) FROM history")
     suspend fun getCount(): Int
+
+    // BUG-24 FIX: Added method to delete individual history entries by ID
+    @Query("DELETE FROM history WHERE id = :id")
+    suspend fun deleteById(id: Long)
 }

@@ -114,12 +114,26 @@ class DownloadManagerHelper(context: Context) {
 
     /**
      * Sanitize filename to prevent directory traversal and invalid characters.
+     *
+     * BUG-02 FIX: Previous implementation used `.replace("..", "")` which could be
+     * bypassed by inputs like "....//" → "../" after removal. Now uses regex to
+     * remove ALL path separators and directory traversal sequences, then loops
+     * until no ".." remains to prevent multi-pass bypass.
      */
     private fun sanitizeFilename(name: String): String {
-        return name
-            .replace("..", "")
+        // Remove all path separators first (prevents any traversal)
+        var sanitized = name
             .replace("/", "_")
             .replace("\\", "_")
+
+        // Remove ".." sequences in a loop until none remain
+        // (handles bypass patterns like "....//" → "../" → "..")
+        while (sanitized.contains("..")) {
+            sanitized = sanitized.replace("..", "")
+        }
+
+        // Replace other invalid filesystem characters
+        sanitized = sanitized
             .replace(":", "_")
             .replace("|", "_")
             .replace("?", "_")
@@ -127,7 +141,12 @@ class DownloadManagerHelper(context: Context) {
             .replace("<", "_")
             .replace(">", "_")
             .replace("\"", "_")
+            .replace("\u0000", "")  // Null byte
+
             .take(200)  // Limit filename length
+
+        // Ensure the filename is not empty after sanitization
+        return sanitized.ifEmpty { "download" }
     }
 
     /**

@@ -1,6 +1,5 @@
 package com.zbrowser.app
 
-import android.content.Context
 import android.content.SharedPreferences
 import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
@@ -9,6 +8,8 @@ import java.util.regex.Pattern
 
 /**
  * High-performance ad and tracker blocker.
+ *
+ * v4.1 FIX: Removed unused Context parameter (BUG-15).
  *
  * v4.0 OPTIMIZATIONS:
  * - HashSet for O(1) domain lookups (was O(n) linear scan)
@@ -19,7 +20,7 @@ import java.util.regex.Pattern
  * Blocks both the request AND hides ad containers via CSS injection
  * so there's no empty space / click-to-load issue.
  */
-class AdBlocker(private val context: Context, private val prefs: SharedPreferences) {
+class AdBlocker(private val prefs: SharedPreferences) {
 
     companion object {
         private const val KEY_AD_BLOCKER_ENABLED = "ad_blocker_enabled"

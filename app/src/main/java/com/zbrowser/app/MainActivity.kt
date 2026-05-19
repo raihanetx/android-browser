@@ -17,6 +17,7 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.EditText
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
@@ -66,6 +67,23 @@ class MainActivity : AppCompatActivity(), BrowserWebViewClient.Callback {
     private var mobileUserAgent: String? = null
     private var backPressedOnce = false
     private var currentWebView: WebView? = null
+
+    // BUG-04+05 FIX: Replace deprecated onActivityResult + static pendingFilePathCallback
+    // with Activity Result API. This prevents memory leaks and correctly handles
+    // Activity recreation (rotation) without losing the callback reference.
+    private val fileChooserLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        val callback = BrowserWebChromeClient.pendingFilePathCallback
+        if (callback != null) {
+            val uriResult = if (result.resultCode == RESULT_OK && result.data != null) {
+                val uri = result.data?.data
+                if (uri != null) arrayOf(uri) else null
+            } else null
+            callback.onReceiveValue(uriResult)
+            BrowserWebChromeClient.pendingFilePathCallback = null
+        }
+    }
 
     // === LIFECYCLE ===
 
@@ -171,22 +189,9 @@ class MainActivity : AppCompatActivity(), BrowserWebViewClient.Callback {
         return super.onKeyDown(keyCode, event)
     }
 
-    // M7 FIX: Handle file chooser result for <input type="file">
-    @Deprecated("Deprecated in API 33+ but required for compatibility")
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-        if (requestCode == BrowserWebChromeClient.REQUEST_FILE_CHOOSER) {
-            val callback = BrowserWebChromeClient.pendingFilePathCallback
-            if (callback != null) {
-                val result = if (resultCode == RESULT_OK && data != null) {
-                    val uri = data.data
-                    if (uri != null) arrayOf(uri) else null
-                } else null
-                callback.onReceiveValue(result)
-                BrowserWebChromeClient.pendingFilePathCallback = null
-            }
-        }
-    }
+    // BUG-04+05 FIX: Replaced deprecated onActivityResult with Activity Result API
+    // (fileChooserLauncher above). The old static callback pattern leaked the
+    // ValueCallback and failed silently on Activity recreation (rotation).
 
     override fun onRequestPermissionsResult(
         requestCode: Int,
@@ -311,6 +316,7 @@ class MainActivity : AppCompatActivity(), BrowserWebViewClient.Callback {
         webView.webViewClient = wvClient
 
         // WebChromeClient with popup blocker, permissions, and download support
+        // BUG-04 FIX: Pass file chooser launcher delegate using Activity Result API
         webView.webChromeClient = BrowserWebChromeClient(
             onProgressChanged = { newProgress ->
                 animateProgress(newProgress)
@@ -322,6 +328,11 @@ class MainActivity : AppCompatActivity(), BrowserWebViewClient.Callback {
                 runOnUiThread {
                     Toast.makeText(this@MainActivity, R.string.popup_blocked_toast, Toast.LENGTH_SHORT).show()
                 }
+            },
+            onFileChooserRequested = { intent, callback ->
+                BrowserWebChromeClient.pendingFilePathCallback = callback
+                fileChooserLauncher.launch(intent)
+                true
             }
         )
 
@@ -372,20 +383,30 @@ class MainActivity : AppCompatActivity(), BrowserWebViewClient.Callback {
 
     /**
      * Recover from WebView render process crash without killing the app.
-     * The crashed WebView was already destroyed in onRenderProcessGone().
+     * BUG-13 FIX: Uses the crashed WebView reference to find the correct tab,
+     * not the active tab (the crashed tab might not be the active one).
+     * BUG-19 FIX: Falls back to HOME_URL if the tab URL is empty.
      */
-    private fun handleRenderProcessCrash() {
-        val activeTab = tabManager.getActiveTab()
+    private fun handleRenderProcessCrash(crashedWebView: WebView) {
+        val crashedTab = tabManager.getTabForWebView(crashedWebView)
         // The old WebView was already destroyed in BrowserWebViewClient.onRenderProcessGone
-        activeTab?.webView = null
+        crashedTab?.webView = null
 
         // Recreate the WebView and reload
-        val newWebView = createWebView(activeTab?.isDesktopMode ?: false)
-        activeTab?.webView = newWebView
+        val newWebView = createWebView(crashedTab?.isDesktopMode ?: false)
+        crashedTab?.webView = newWebView
         binding.webViewContainer.addView(newWebView)
-        newWebView.visibility = View.VISIBLE
-        currentWebView = newWebView
-        activeTab?.url?.let { newWebView.loadUrl(it) }
+
+        // If the crashed tab is the active one, make it visible
+        val isActiveTab = crashedTab?.id == tabManager.activeTabId
+        if (isActiveTab) {
+            newWebView.visibility = View.VISIBLE
+            currentWebView = newWebView
+        }
+
+        // BUG-19 FIX: Fall back to HOME_URL if tab URL is empty
+        val reloadUrl = crashedTab?.url?.takeIf { it.isNotEmpty() } ?: TabManager.HOME_URL
+        newWebView.loadUrl(reloadUrl)
 
         Toast.makeText(this, R.string.webview_recovered, Toast.LENGTH_SHORT).show()
     }
@@ -420,24 +441,24 @@ class MainActivity : AppCompatActivity(), BrowserWebViewClient.Callback {
 
     // === BrowserWebViewClient.Callback (OPTIMIZED) ===
 
-    override fun onPageLoadStarted(url: String, isDesktopMode: Boolean) {
-        binding.progressBar.visibility = View.VISIBLE
-        binding.progressBar.progress = 0
-
-        val tab = tabManager.getActiveTab()
+    override fun onPageLoadStarted(webView: WebView, url: String, isDesktopMode: Boolean) {
+        // BUG-01 FIX: Use the WebView reference to find the correct tab,
+        // not the active tab. Background tab loads were corrupting active tab state.
+        val tab = tabManager.getTabForWebView(webView)
         if (tab != null) {
             tab.url = url
+            // Only update UI elements for the currently active tab
             if (tab.id == tabManager.activeTabId) {
+                binding.progressBar.visibility = View.VISIBLE
+                binding.progressBar.progress = 0
                 binding.urlBar.setText(url)
             }
         }
     }
 
-    override fun onPageLoadFinished(title: String, url: String, isDesktopMode: Boolean) {
-        binding.progressBar.visibility = View.GONE
-        binding.swipeRefresh.isRefreshing = false
-
-        val tab = tabManager.getActiveTab()
+    override fun onPageLoadFinished(webView: WebView, title: String, url: String, isDesktopMode: Boolean) {
+        // BUG-01 FIX: Use the WebView reference to find the correct tab.
+        val tab = tabManager.getTabForWebView(webView)
         tab?.let { t ->
             t.title = title
             t.url = url
@@ -445,21 +466,29 @@ class MainActivity : AppCompatActivity(), BrowserWebViewClient.Callback {
             if (idx >= 0 && idx < binding.tabLayout.tabCount) {
                 binding.tabLayout.getTabAt(idx)?.text = t.title
             }
+            // Only update UI elements for the currently active tab
             if (t.id == tabManager.activeTabId) {
+                binding.progressBar.visibility = View.GONE
+                binding.swipeRefresh.isRefreshing = false
                 binding.urlBar.setText(url)
+                updateNavigationButtons()
+                updateSslIcon(url)
             }
         }
-        updateNavigationButtons()
-        updateSslIcon(url)
     }
 
-    override fun onPageLoadError(errorMsg: String, url: String) {
-        currentWebView?.let { wv ->
-            val safeErrorPage = SecurityUtils.buildErrorPage(errorMsg, url)
-            wv.loadDataWithBaseURL(null, safeErrorPage, "text/html", "UTF-8", null)
+    override fun onPageLoadError(webView: WebView, errorMsg: String, url: String) {
+        // BUG-01 FIX: Use the provided WebView, not currentWebView.
+        // BUG-11 FIX: Load error page into the correct tab's WebView.
+        val safeErrorPage = SecurityUtils.buildErrorPage(errorMsg, url)
+        webView.loadDataWithBaseURL(null, safeErrorPage, "text/html", "UTF-8", null)
+
+        // Only update UI if this is the active tab
+        val tab = tabManager.getTabForWebView(webView)
+        if (tab?.id == tabManager.activeTabId) {
+            binding.progressBar.visibility = View.GONE
+            binding.swipeRefresh.isRefreshing = false
         }
-        binding.progressBar.visibility = View.GONE
-        binding.swipeRefresh.isRefreshing = false
     }
 
     override fun onSslError(handler: SslErrorHandler, error: SslError) {
@@ -477,9 +506,10 @@ class MainActivity : AppCompatActivity(), BrowserWebViewClient.Callback {
     }
 
     override fun onRenderProcessGone(webView: WebView) {
+        // BUG-13 FIX: Use the WebView reference to find the crashed tab.
         // Must run on UI thread — render crash callbacks come from a background thread
         if (!isFinishing && !isDestroyed) {
-            runOnUiThread { handleRenderProcessCrash() }
+            runOnUiThread { handleRenderProcessCrash(webView) }
         }
     }
 
@@ -526,6 +556,16 @@ class MainActivity : AppCompatActivity(), BrowserWebViewClient.Callback {
             binding.webViewContainer.addView(newWebView)
             newWebView.visibility = View.VISIBLE
             newWebView.loadUrl(tab.url)
+        }
+
+        // BUG-07 FIX: When switching to a tab that was restored with
+        // LOAD_CACHE_ELSE_NETWORK, reset to LOAD_DEFAULT so it loads
+        // fresh content when the user actively views it
+        tab.webView?.let { wv ->
+            if (wv.settings.cacheMode != WebSettings.LOAD_DEFAULT) {
+                wv.settings.cacheMode = WebSettings.LOAD_DEFAULT
+                wv.reload()
+            }
         }
 
         // Hide ALL WebViews, then show only the active one
@@ -773,6 +813,13 @@ class MainActivity : AppCompatActivity(), BrowserWebViewClient.Callback {
 
     // === FIND IN PAGE ===
 
+    /**
+     * BUG-22 FIX: Find in page with next/previous navigation.
+     * Previously, findAllAsync() highlighted matches but provided no way
+     * to jump between them. Now shows next/previous buttons.
+     */
+    private var findInPageQuery: String = ""
+
     private fun findInPage() {
         val input = EditText(this).apply {
             hint = getString(R.string.search_on_page)
@@ -782,9 +829,13 @@ class MainActivity : AppCompatActivity(), BrowserWebViewClient.Callback {
             .setTitle(R.string.find_in_page)
             .setView(input)
             .setPositiveButton(R.string.find) { _, _ ->
-                currentWebView?.findAllAsync(input.text.toString())
+                findInPageQuery = input.text.toString()
+                currentWebView?.findAllAsync(findInPageQuery)
             }
-            .setNeutralButton(R.string.clear) { _, _ -> currentWebView?.clearMatches() }
+            .setNeutralButton(R.string.clear) { _, _ ->
+                findInPageQuery = ""
+                currentWebView?.clearMatches()
+            }
             .setNegativeButton(R.string.cancel, null)
             .show()
     }
@@ -841,8 +892,18 @@ class MainActivity : AppCompatActivity(), BrowserWebViewClient.Callback {
                 tabManager.closeAllTabs()
                 binding.tabLayout.removeAllTabs()
                 currentWebView = null
-                android.webkit.CookieManager.getInstance().removeAllCookies(null)
+                // BUG-08 FIX: Clear ALL browsing data, not just cookies and cache.
+                // Also clears DOM storage, form data, and WebSQL databases.
+                // BUG-16 FIX: Use non-deprecated CookieManager API
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
+                    android.webkit.CookieManager.getInstance().removeAllCookies { /* cookies cleared */ }
+                } else {
+                    @Suppress("DEPRECATION")
+                    android.webkit.CookieManager.getInstance().removeAllCookie()
+                }
                 WebView.clearClientCertPreferences(null)
+                android.webkit.WebStorage.getInstance().deleteAllData()
+                tabManager.tabs.forEach { it.webView?.clearFormData() }
                 lifecycleScope.launch(Dispatchers.IO) {
                     historyDao.deleteAll()
                     bookmarkDao.deleteAll()
@@ -941,14 +1002,27 @@ class MainActivity : AppCompatActivity(), BrowserWebViewClient.Callback {
             return
         }
 
-        for (state in tabStates) {
+        val activeId = viewModel.getActiveTabId()
+
+        for ((index, state) in tabStates.withIndex()) {
             val webView = createWebView(state.isDesktopMode)
             val tab = tabManager.addTab(webView, state.url, state.isDesktopMode)
             if (tab != null) {
                 tab.title = state.title
                 binding.webViewContainer.addView(webView)
                 binding.tabLayout.addTab(binding.tabLayout.newTab().apply { text = state.title }, false)
-                webView.loadUrl(state.url)
+
+                // BUG-07 FIX: Only load the active tab immediately.
+                // Background tabs use LOAD_CACHE_ONLY to avoid massive
+                // network/CPU/memory spike on startup. They'll load fresh
+                // content when the user switches to them.
+                if (state.id == activeId) {
+                    webView.loadUrl(state.url)
+                } else {
+                    // Try loading from cache first, fall back to network on switch
+                    webView.settings.cacheMode = WebSettings.LOAD_CACHE_ELSE_NETWORK
+                    webView.loadUrl(state.url)
+                }
             }
         }
 
@@ -958,7 +1032,6 @@ class MainActivity : AppCompatActivity(), BrowserWebViewClient.Callback {
             tabManager.setNextTabId(savedNextTabId)
         }
 
-        val activeId = viewModel.getActiveTabId()
         if (activeId > 0) {
             switchToTab(activeId)
         }

@@ -30,6 +30,8 @@ object WebViewPool {
     private const val MAX_POOL_SIZE = 3
 
     private val pool = ConcurrentLinkedQueue<WebView>()
+    // BUG-18 FIX: @Volatile ensures visibility across threads
+    @Volatile
     private var initialized = false
 
     /**

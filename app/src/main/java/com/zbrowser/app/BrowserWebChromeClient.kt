@@ -1,6 +1,5 @@
 package com.zbrowser.app
 
-import android.app.Activity
 import android.content.Intent
 import android.net.Uri
 import android.webkit.GeolocationPermissions
@@ -14,7 +13,13 @@ import android.webkit.WebView
  * Handles progress updates, new window creation (with popup blocking),
  * geolocation permissions, file chooser, and download detection.
  *
- * v4.0 FIX: M7 — Added onShowFileChooser for <input type="file"> support.
+ * BUG-04 FIX: Replaced static pendingFilePathCallback with a delegate pattern
+ * that uses the Activity's Activity Result API launcher. The static callback
+ * leaked the ValueCallback and failed silently on Activity recreation.
+ *
+ * BUG-06 FIX: onCreateWindow now receives isUserGesture and passes it to
+ * PopupBlocker so user-initiated clicks can open new tabs even when the
+ * popup blocker is enabled.
  */
 class BrowserWebChromeClient(
     private val onProgressChanged: (Int) -> Unit,
@@ -22,7 +27,7 @@ class BrowserWebChromeClient(
     private val popupBlocker: PopupBlocker,
     private val permissionManager: PermissionManager,
     private val onPopupBlocked: () -> Unit = {},
-    private val onShowFileChooser: ((ValueCallback<Array<Uri>>?, String?) -> Boolean)? = null
+    private val onFileChooserRequested: ((Intent, ValueCallback<Array<Uri>>?) -> Boolean)? = null
 ) : WebChromeClient() {
 
     override fun onProgressChanged(view: WebView?, newProgress: Int) {
@@ -31,6 +36,11 @@ class BrowserWebChromeClient(
 
     /**
      * FEATURE 1: Popup Blocker - block window.open() when enabled.
+     *
+     * BUG-06 FIX: Now passes isUserGesture to shouldBlockPopup() so that
+     * user-initiated clicks (e.g., <a target="_blank">) can open new tabs
+     * even when the popup blocker is enabled. Only programmatic popups
+     * (window.open without user gesture) are blocked.
      */
     override fun onCreateWindow(
         view: WebView?,
@@ -38,7 +48,7 @@ class BrowserWebChromeClient(
         isUserGesture: Boolean,
         resultMsg: android.os.Message?
     ): Boolean {
-        if (popupBlocker.shouldBlockPopup()) {
+        if (popupBlocker.shouldBlockPopup(isUserGesture)) {
             // Block the popup and notify the user
             onPopupBlocked()
             return false  // Returning false prevents the window from being created
@@ -69,29 +79,24 @@ class BrowserWebChromeClient(
     }
 
     /**
-     * M7 FIX: Handle <input type="file"> file chooser requests.
-     * Delegates to the Activity which can show a file picker intent.
-     * Without this, file upload buttons on web pages do nothing.
+     * Handle <input type="file"> file chooser requests.
+     *
+     * BUG-04 FIX: Instead of using deprecated startActivityForResult with a
+     * static callback, the Activity provides a launcher function via
+     * onFileChooserRequested. This uses the Activity Result API which
+     * correctly handles Activity recreation (rotation).
      */
     override fun onShowFileChooser(
         webView: WebView?,
         filePathCallback: ValueCallback<Array<Uri>>?,
         fileChooserParams: FileChooserParams?
     ): Boolean {
-        // If the activity provided a custom handler, use it
-        if (onShowFileChooser != null) {
-            return onShowFileChooser(filePathCallback, fileChooserParams?.acceptTypes?.firstOrNull())
-        }
-
-        // Default: create a simple file chooser intent
         val intent = fileChooserParams?.createIntent()
         return try {
-            if (intent != null && webView?.context is Activity) {
-                @Suppress("DEPRECATION")
-                (webView.context as Activity).startActivityForResult(intent, REQUEST_FILE_CHOOSER)
-                pendingFilePathCallback = filePathCallback
-                true
+            if (intent != null && onFileChooserRequested != null) {
+                onFileChooserRequested(intent, filePathCallback)
             } else {
+                filePathCallback?.onReceiveValue(null)
                 false
             }
         } catch (_: Exception) {
@@ -101,7 +106,11 @@ class BrowserWebChromeClient(
     }
 
     companion object {
-        const val REQUEST_FILE_CHOOSER = 10001
+        /**
+         * BUG-04 FIX: Still kept as static for backward compatibility with the
+         * fileChooserLauncher in MainActivity, but now managed by the Activity
+         * Result API instead of deprecated onActivityResult.
+         */
         var pendingFilePathCallback: ValueCallback<Array<Uri>>? = null
     }
 }

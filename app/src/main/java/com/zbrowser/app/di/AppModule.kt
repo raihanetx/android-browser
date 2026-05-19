@@ -3,13 +3,11 @@ package com.zbrowser.app.di
 import android.content.Context
 import android.content.SharedPreferences
 import androidx.preference.PreferenceManager
-import androidx.room.Room
 import com.zbrowser.app.AdBlocker
 import com.zbrowser.app.BookmarkManager
 import com.zbrowser.app.DownloadManagerHelper
 import com.zbrowser.app.LegacyBookmarks
 import com.zbrowser.app.PopupBlocker
-import com.zbrowser.app.TabManager
 import com.zbrowser.app.data.BookmarkDao
 import com.zbrowser.app.data.HistoryDao
 import com.zbrowser.app.data.ZBrowserDatabase
@@ -45,16 +43,25 @@ object AppModule {
     @Singleton
     @LegacyBookmarks
     fun provideLegacyBookmarksPrefs(@ApplicationContext context: Context): SharedPreferences {
-        val masterKey = MasterKey.Builder(context)
-            .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
-            .build()
-        return EncryptedSharedPreferences.create(
-            context,
-            "secure_bookmarks",
-            masterKey,
-            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
-        )
+        return try {
+            val masterKey = MasterKey.Builder(context)
+                .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+                .build()
+            EncryptedSharedPreferences.create(
+                context,
+                "secure_bookmarks",
+                masterKey,
+                EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+                EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+            )
+        } catch (e: Exception) {
+            // BUG-03 FIX: If the master key is invalidated (device lock change,
+            // biometric enrollment), EncryptedSharedPreferences.create() throws
+            // GeneralSecurityException. This would crash the app on startup.
+            // Fall back to regular SharedPreferences so the app can at least start.
+            // The migration code in BookmarkManager will handle the empty prefs gracefully.
+            context.getSharedPreferences("secure_bookmarks_fallback", Context.MODE_PRIVATE)
+        }
     }
 
     @Provides
@@ -75,8 +82,8 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideAdBlocker(@ApplicationContext context: Context, prefs: SharedPreferences): AdBlocker {
-        return AdBlocker(context, prefs)
+    fun provideAdBlocker(prefs: SharedPreferences): AdBlocker {
+        return AdBlocker(prefs)
     }
 
     @Provides

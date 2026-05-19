@@ -42,9 +42,9 @@ class BrowserWebViewClient(
 ) : WebViewClient() {
 
     interface Callback {
-        fun onPageLoadStarted(url: String, isDesktopMode: Boolean)
-        fun onPageLoadFinished(title: String, url: String, isDesktopMode: Boolean)
-        fun onPageLoadError(errorMsg: String, url: String)
+        fun onPageLoadStarted(webView: WebView, url: String, isDesktopMode: Boolean)
+        fun onPageLoadFinished(webView: WebView, title: String, url: String, isDesktopMode: Boolean)
+        fun onPageLoadError(webView: WebView, errorMsg: String, url: String)
         fun onSslError(handler: SslErrorHandler, error: SslError)
         fun onPopupBlocked()
         fun onRenderProcessGone(webView: WebView)
@@ -124,11 +124,13 @@ class BrowserWebViewClient(
         val isDesktop = tabLookup(view)?.isDesktopMode ?: false
         view?.let { wv ->
             applyModeSettings(wv.settings, isDesktop)
-            popupBlocker.applyToWebView(wv)
+            // BUG-21 FIX: Removed redundant popupBlocker.applyToWebView() here.
+            // It's already applied in createWebView() and when the user toggles
+            // the popup blocker setting. Re-applying on every page load is wasteful.
         }
 
         url?.let {
-            callback?.onPageLoadStarted(it, isDesktop)
+            callback?.onPageLoadStarted(wv, it, isDesktop)
         }
     }
 
@@ -154,6 +156,7 @@ class BrowserWebViewClient(
             }
 
             callback?.onPageLoadFinished(
+                webView = wv,
                 title = if (title.isNotEmpty()) title else pageUrl,
                 url = pageUrl,
                 isDesktopMode = isDesktop
@@ -170,7 +173,9 @@ class BrowserWebViewClient(
         if (request?.isForMainFrame == true) {
             val errorMsg = error?.description?.toString() ?: "Unknown error"
             val pageUrl = view?.url ?: ""
-            callback?.onPageLoadError(errorMsg, pageUrl)
+            if (view != null) {
+                callback?.onPageLoadError(view, errorMsg, pageUrl)
+            }
         }
     }
 
@@ -193,9 +198,10 @@ class BrowserWebViewClient(
         if (view != null) {
             // Remove from parent before destroy — prevents "already has a parent" crash
             (view.parent as? android.view.ViewGroup)?.removeView(view)
-            view.destroy()
-            // Notify the Activity on the main thread
+            // Notify the Activity BEFORE destroying so it can identify the tab
+            // via the still-valid WebView reference
             callback?.onRenderProcessGone(view)
+            view.destroy()
         }
         return true
     }
