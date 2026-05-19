@@ -9,6 +9,10 @@
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <!-- Declare hardware features as not-required so app works on ChromeOS / devices without camera/mic -->
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+    <uses-feature android:name="android.hardware.microphone" android:required="false" />
+    <uses-feature android:name="android.hardware.location.gps" android:required="false" />
     <!-- BUG-10 FIX: POST_NOTIFICATIONS required for Android 13+ (API 33)
          to show download notifications from DownloadManager -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
