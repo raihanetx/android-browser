@@ -3,6 +3,7 @@ package com.zbrowser.app
 import android.content.Context
 import android.content.SharedPreferences
 import android.os.Build
+import com.zbrowser.app.BuildConfig
 import java.io.File
 import java.io.FileWriter
 import java.io.PrintWriter

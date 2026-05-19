@@ -1,16 +1,20 @@
 package com.zbrowser.app
 
-import android.os.Bundle
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.savedstate.SavedStateHandle
+import androidx.savedstate.SavedStateHandle
+import dagger.hilt.android.lifecycle.HiltViewModel
 import java.io.Serializable
+import javax.inject.Inject
 
 /**
  * ViewModel for the browser that survives configuration changes.
  * Stores tab metadata (not WebViews, which are Activity-scoped) so that
  * tab state can be restored after rotation or process death.
  */
-class BrowserViewModel(private val savedStateHandle: SavedStateHandle) : ViewModel() {
+@HiltViewModel
+class BrowserViewModel @Inject constructor(
+    private val savedStateHandle: SavedStateHandle
+) : ViewModel() {
 
     companion object {
         private const val KEY_TAB_DATA = "tab_data"

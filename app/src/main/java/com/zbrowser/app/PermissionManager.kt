@@ -28,10 +28,11 @@ class PermissionManager(private val activity: Activity) {
         const val RC_MICROPHONE = 1003
         const val RC_FILE_ACCESS = 1004
 
-        private val RESOURCE_TO_PERMISSION = mapOf(
+        private val RESOURCE_TO_PERMISSION: Map<String, String> = mapOf(
             PermissionRequest.RESOURCE_VIDEO_CAPTURE to Manifest.permission.CAMERA,
-            PermissionRequest.RESOURCE_AUDIO_CAPTURE to Manifest.permission.RECORD_AUDIO,
-            PermissionRequest.RESOURCE_GEOLOCATION to Manifest.permission.ACCESS_FINE_LOCATION
+            PermissionRequest.RESOURCE_AUDIO_CAPTURE to Manifest.permission.RECORD_AUDIO
+            // NOTE: RESOURCE_GEOLOCATION was removed in API 35.
+            // Geolocation is handled separately via onGeolocationPermissionsShowPrompt.
         )
     }
 
@@ -70,7 +71,7 @@ class PermissionManager(private val activity: Activity) {
                 when (resource) {
                     PermissionRequest.RESOURCE_VIDEO_CAPTURE -> requestCode = RC_CAMERA
                     PermissionRequest.RESOURCE_AUDIO_CAPTURE -> requestCode = RC_MICROPHONE
-                    PermissionRequest.RESOURCE_GEOLOCATION -> requestCode = RC_GEOLOCATION
+                    // Geolocation handled via onGeolocationPermissionsShowPrompt
                 }
             }
         }

@@ -115,9 +115,9 @@ class MainActivity : AppCompatActivity(), BrowserWebViewClient.Callback {
         handleIntent(intent)
     }
 
-    override fun onNewIntent(intent: Intent?) {
+    override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        intent?.let { handleIntent(it) }
+        handleIntent(intent)
     }
 
     override fun onResume() {
@@ -161,7 +161,9 @@ class MainActivity : AppCompatActivity(), BrowserWebViewClient.Callback {
 
         tabManager.onTrimMemory(level)
         if (level >= ComponentCallbacks2.TRIM_MEMORY_RUNNING_LOW) {
-            WebView.clearCache(false)   // Clear WebView static cache
+            // Clear WebView cache per-instance (WebView.clearCache static method
+            // may be unavailable in newer API levels)
+            currentWebView?.clearCache(false)
         }
     }
 
@@ -306,7 +308,7 @@ class MainActivity : AppCompatActivity(), BrowserWebViewClient.Callback {
         // WebViewClient with all features
         val wvClient = BrowserWebViewClient(
             context = this,
-            tabLookup = { wv -> tabManager.getTabForWebView(wv) },
+            tabLookup = { wv -> wv?.let { tabManager.getTabForWebView(it) } },
             adBlocker = adBlocker,
             popupBlocker = popupBlocker,
             historyDao = historyDao,

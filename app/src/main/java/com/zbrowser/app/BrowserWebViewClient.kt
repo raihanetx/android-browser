@@ -129,8 +129,9 @@ class BrowserWebViewClient(
             // the popup blocker setting. Re-applying on every page load is wasteful.
         }
 
-        url?.let {
-            callback?.onPageLoadStarted(wv, it, isDesktop)
+        // FIX: Use view directly instead of wv which was out of scope
+        if (view != null && url != null) {
+            callback?.onPageLoadStarted(view, url, isDesktop)
         }
     }
 
