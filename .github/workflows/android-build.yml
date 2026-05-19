@@ -30,10 +30,18 @@ jobs:
         gradle-version: '8.9'
         validate-wrappers: false
 
+    - name: Decode Keystore
+      run: |
+        echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > app/zbrowser-release.jks
+        echo "KEYSTORE_FILE=app/zbrowser-release.jks" >> $GITHUB_ENV
+        echo "KEYSTORE_PASSWORD=${{ secrets.KEYSTORE_PASSWORD }}" >> $GITHUB_ENV
+        echo "KEY_ALIAS=${{ secrets.KEY_ALIAS }}" >> $GITHUB_ENV
+        echo "KEY_PASSWORD=${{ secrets.KEY_PASSWORD }}" >> $GITHUB_ENV
+
     - name: Build Debug APK
       run: gradle assembleDebug
 
-    - name: Build Release APK
+    - name: Build Signed Release APK
       run: gradle assembleRelease
 
     - name: Upload Debug APK
@@ -42,7 +50,7 @@ jobs:
         name: ZBrowser-debug
         path: app/build/outputs/apk/debug/*.apk
 
-    - name: Upload Release APK
+    - name: Upload Signed Release APK
       uses: actions/upload-artifact@v4
       with:
         name: ZBrowser-release
@@ -52,8 +60,8 @@ jobs:
       if: github.event_name == 'push' && github.ref == 'refs/heads/main'
       uses: softprops/action-gh-release@v2
       with:
-        tag_name: v1.1.${{ github.run_number }}
-        name: ZBrowser v1.1.${{ github.run_number }}
+        tag_name: v1.2.${{ github.run_number }}
+        name: ZBrowser v1.2.${{ github.run_number }}
         body: |
           ## ZBrowser - Android WebView Browser
 
@@ -61,7 +69,7 @@ jobs:
 
           ### Downloads
           - **ZBrowser-debug.apk** - Debug build for testing
-          - **ZBrowser-release.apk** - Release build (ProGuard optimized)
+          - **ZBrowser-release.apk** - Signed release build (ProGuard optimized, installable!)
         files: |
           app/build/outputs/apk/debug/*.apk
           app/build/outputs/apk/release/*.apk

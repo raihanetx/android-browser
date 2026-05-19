@@ -11,8 +11,32 @@ android {
         applicationId = "com.zbrowser.app"
         minSdk = 24
         targetSdk = 35
-        versionCode = 2
-        versionName = "1.1.0"
+        versionCode = 3
+        versionName = "1.2.0"
+    }
+
+    signingConfigs {
+        create("release") {
+            // These values come from GitHub Secrets in CI
+            // For local builds, use the keystore file directly
+            val ksFile = System.getenv("KEYSTORE_FILE")
+            val ksPassword = System.getenv("KEYSTORE_PASSWORD")
+            val ksAlias = System.getenv("KEY_ALIAS")
+            val ksKeyPassword = System.getenv("KEY_PASSWORD")
+
+            if (ksFile != null) {
+                storeFile = file(ksFile)
+            }
+            if (ksPassword != null) {
+                storePassword = ksPassword
+            }
+            if (ksAlias != null) {
+                keyAlias = ksAlias
+            }
+            if (ksKeyPassword != null) {
+                keyPassword = ksKeyPassword
+            }
+        }
     }
 
     buildTypes {
@@ -22,6 +46,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            signingConfig = signingConfigs.getByName("release")
         }
     }
 
