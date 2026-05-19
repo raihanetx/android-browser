@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- API 27+ overrides: windowLightNavigationBar requires API 27 -->
     <style name="Theme.ZBrowser" parent="Theme.MaterialComponents.Light.NoActionBar">
         <item name="colorPrimary">@color/colorPrimary</item>
         <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
@@ -7,6 +8,6 @@
         <item name="android:statusBarColor">@color/browser_toolbar_bg</item>
         <item name="android:windowLightStatusBar">true</item>
         <item name="android:navigationBarColor">@color/browser_toolbar_bg</item>
-        <!-- windowLightNavigationBar is in values-v27/themes.xml for API 27+ -->
+        <item name="android:windowLightNavigationBar">true</item>
     </style>
 </resources>
