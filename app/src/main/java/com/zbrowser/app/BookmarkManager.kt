@@ -24,6 +24,7 @@ class BookmarkManager @Inject constructor(
     private val bookmarkDao: BookmarkDao,
     @LegacyBookmarks private val legacyPrefs: SharedPreferences
 ) {
+    @Volatile
     private var migrated = false
 
     /**

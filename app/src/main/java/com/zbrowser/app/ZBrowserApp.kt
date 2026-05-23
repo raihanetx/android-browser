@@ -55,7 +55,6 @@ class ZBrowserApp : Application() {
     }
 
     override fun onTerminate() {
-        appScope.cancel()
         super.onTerminate()
     }
 }

@@ -36,7 +36,6 @@ class BrowserWebViewClient(
     private val context: Context,
     private val tabLookup: (WebView?) -> BrowserTab?,
     private val adBlocker: AdBlocker,
-    private val popupBlocker: PopupBlocker,
     private val historyDao: HistoryDao?,
     private val appScope: CoroutineScope? = null
 ) : WebViewClient() {
@@ -124,12 +123,13 @@ class BrowserWebViewClient(
         val isDesktop = tabLookup(view)?.isDesktopMode ?: false
         view?.let { wv ->
             applyModeSettings(wv.settings, isDesktop)
-            // BUG-21 FIX: Removed redundant popupBlocker.applyToWebView() here.
-            // It's already applied in createWebView() and when the user toggles
-            // the popup blocker setting. Re-applying on every page load is wasteful.
+
+            // Inject ad-hide CSS before page renders to prevent layout flash
+            if (adBlocker.isEnabled && url != null && url.startsWith("http")) {
+                wv.evaluateJavascript(AdBlocker.AD_HIDE_CSS, null)
+            }
         }
 
-        // FIX: Use view directly instead of wv which was out of scope
         if (view != null && url != null) {
             callback?.onPageLoadStarted(view, url, isDesktop)
         }
@@ -148,9 +148,7 @@ class BrowserWebViewClient(
                 wv.evaluateJavascript(mobileViewportJs, null)
             }
 
-            if (adBlocker.isEnabled) {
-                wv.evaluateJavascript(AdBlocker.AD_HIDE_CSS, null)
-            }
+
 
             if (title.isNotEmpty() && pageUrl.startsWith("http")) {
                 recordHistoryDebounced(title, pageUrl)

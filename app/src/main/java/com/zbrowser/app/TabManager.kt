@@ -41,6 +41,7 @@ class TabManager @Inject constructor() {
 
     fun addTab(webView: WebView?, url: String = HOME_URL, isDesktopMode: Boolean = false): BrowserTab? {
         if (_tabs.size >= MAX_TABS) return null
+        if (webView != null && _tabs.any { it.webView === webView }) return null
 
         val tab = BrowserTab(
             id = _nextTabId++,

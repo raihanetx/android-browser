@@ -48,7 +48,7 @@ class PermissionManager(private val activity: Activity) {
         if (hasPermission(Manifest.permission.ACCESS_FINE_LOCATION)) {
             callback.invoke(origin, true, false)
         } else {
-            val requestCode = RC_GEOLOCATION
+            val requestCode = nextRequestCode++
             pendingGeoCallbacks[requestCode] = Pair(callback, origin)
             ActivityCompat.requestPermissions(
                 activity,

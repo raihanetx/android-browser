@@ -89,4 +89,10 @@
 
     <!-- L5: Back press exit confirmation -->
     <string name="press_back_again">Press back again to exit</string>
+
+    <!-- History -->
+    <string name="open">Open</string>
+    <string name="close">Close</string>
+    <string name="delete_history_entry">Delete</string>
+    <string name="history_entry_deleted">History entry deleted</string>
 </resources>

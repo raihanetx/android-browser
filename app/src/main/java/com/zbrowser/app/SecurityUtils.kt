@@ -1,6 +1,7 @@
 package com.zbrowser.app
 
 import android.net.Uri
+import java.net.URLDecoder
 
 /**
  * Security utility methods for the browser engine.
@@ -40,18 +41,31 @@ object SecurityUtils {
      * Validate that an intent URI is safe to process.
      * Only allows http/https fallback URLs from intent:// schemes.
      * Prevents package enumeration and arbitrary app launching.
+     *
+     * Android intent:// URIs have the format:
+     *   intent://host#Intent;S.browser_fallback_url=https%3A%2F%2Fexample.com;end
+     * Uri.parse() doesn't handle the #Intent;...;end fragment, so we parse manually.
      */
     fun extractSafeFallbackFromIntent(intentUrl: String): String? {
         if (!intentUrl.lowercase().startsWith("intent://")) return null
         return try {
-            val uri = Uri.parse(intentUrl)
-            uri.getQueryParameter("browser_fallback_url")?.let { fallback ->
-                if (fallback.startsWith("http://") || fallback.startsWith("https://")) {
-                    fallback
-                } else {
-                    null
+            val fragmentStart = intentUrl.indexOf('#')
+            if (fragmentStart < 0) return null
+            val fragment = intentUrl.substring(fragmentStart + 1)
+            // Fragment looks like: Intent;key=value;S.browser_fallback_url=https%3A...;end
+            val params = fragment.split(";")
+            for (param in params) {
+                val trimmed = param.trim()
+                if (trimmed.startsWith("S.browser_fallback_url=", ignoreCase = true)) {
+                    val encoded = trimmed.substringAfter("=")
+                    val fallback = URLDecoder.decode(encoded, "UTF-8")
+                    if (fallback.startsWith("http://") || fallback.startsWith("https://")) {
+                        return fallback
+                    }
+                    return null
                 }
             }
+            null
         } catch (e: Exception) {
             null
         }

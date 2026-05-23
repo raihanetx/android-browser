@@ -86,8 +86,8 @@ object WebViewPool {
         }
 
         try {
-            // Wipe state so the next consumer gets a clean WebView
-            webView.loadUrl("about:blank")
+            // Stop any in-progress navigation synchronously
+            webView.stopLoading()
             webView.clearHistory()
             webView.clearCache(false)
             webView.webViewClient = WebViewClient()  // Reset to default
