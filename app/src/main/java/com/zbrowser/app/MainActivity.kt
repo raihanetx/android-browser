@@ -18,6 +18,7 @@ import com.zbrowser.app.data.BookmarkDao
 import com.zbrowser.app.data.HistoryDao
 import com.zbrowser.app.databinding.ActivityMainBinding
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 /**
