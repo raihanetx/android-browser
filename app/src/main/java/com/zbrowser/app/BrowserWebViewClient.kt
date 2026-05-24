@@ -55,20 +55,8 @@ class BrowserWebViewClient(
     private var historyJob: Job? = null
 
     // Viewport JavaScript — cached strings, never re-allocated
-    private val desktopViewportJs = """
-        (function() {
-            var meta = document.querySelector('meta[name="viewport"]');
-            if (meta) {
-                meta.setAttribute('content', 'width=1024, initial-scale=1');
-            } else {
-                meta = document.createElement('meta');
-                meta.name = 'viewport';
-                meta.content = 'width=1024, initial-scale=1';
-                document.head.appendChild(meta);
-            }
-        })();
-    """.trimIndent()
-
+    // Desktop mode: do NOT inject viewport meta — WebView settings
+    // (loadWithOverviewMode + useWideViewPort) handle zooming automatically
     private val mobileViewportJs = """
         (function() {
             var meta = document.querySelector('meta[name="viewport"]');
@@ -142,9 +130,7 @@ class BrowserWebViewClient(
             val pageUrl = url ?: ""
             val isDesktop = tabLookup(wv)?.isDesktopMode ?: false
 
-            if (isDesktop) {
-                wv.evaluateJavascript(desktopViewportJs, null)
-            } else {
+            if (!isDesktop) {
                 wv.evaluateJavascript(mobileViewportJs, null)
             }
 
