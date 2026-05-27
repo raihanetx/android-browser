@@ -58,6 +58,17 @@
                     android:selectAllOnFocus="true"
                     android:autofillHints="" />
 
+                <ImageView
+                    android:id="@+id/btnMenu"
+                    android:layout_width="36dp"
+                    android:layout_height="36dp"
+                    android:layout_marginStart="6dp"
+                    android:src="@drawable/ic_menu"
+                    android:contentDescription="@string/app_name"
+                    android:padding="6dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    app:tint="@color/text_primary" />
+
             </LinearLayout>
         </androidx.appcompat.widget.Toolbar>
 
@@ -70,19 +81,50 @@
             android:progressDrawable="@drawable/progress_bar"
             android:visibility="gone" />
 
-        <com.google.android.material.tabs.TabLayout
-            android:id="@+id/tabLayout"
-            android:layout_width="match_parent"
-            android:layout_height="36dp"
-            android:visibility="visible"
-            app:tabBackground="@android:color/transparent"
-            app:tabGravity="center"
-            app:tabIndicatorHeight="0dp"
-            app:tabMode="scrollable"
-            app:tabPaddingEnd="4dp"
-            app:tabPaddingStart="4dp" />
-
     </com.google.android.material.appbar.AppBarLayout>
+
+    <!-- Tab bar (hidden by default, shown on swipe) -->
+    <LinearLayout
+        android:id="@+id/tabBar"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:layout_gravity="top"
+        android:background="#F5F5F5"
+        android:elevation="4dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="4dp"
+        android:paddingEnd="4dp"
+        android:visibility="gone"
+        android:translationY="-48dp">
+
+        <HorizontalScrollView
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:scrollbars="none">
+
+            <LinearLayout
+                android:id="@+id/tabIconsContainer"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:gravity="center_vertical"
+                android:orientation="horizontal" />
+
+        </HorizontalScrollView>
+
+        <ImageView
+            android:id="@+id/btnAddTab"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_marginStart="4dp"
+            android:src="@drawable/ic_add"
+            android:contentDescription="@string/new_tab_fab"
+            android:padding="6dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            app:tint="@color/colorPrimary" />
+
+    </LinearLayout>
 
     <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
         android:id="@+id/swipeRefresh"
@@ -97,39 +139,5 @@
             android:background="@android:color/white" />
 
     </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
-
-    <com.google.android.material.floatingactionbutton.FloatingActionButton
-        android:id="@+id/fabNewTab"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="end|bottom"
-        android:layout_marginEnd="16dp"
-        android:layout_marginBottom="72dp"
-        android:src="@drawable/ic_add"
-        android:contentDescription="@string/new_tab_fab"
-        app:backgroundTint="@color/colorPrimary"
-        app:tint="@android:color/white"
-        app:fabSize="normal" />
-
-    <LinearLayout
-        android:id="@+id/bottomBar"
-        android:layout_width="match_parent"
-        android:layout_height="56dp"
-        android:layout_gravity="bottom"
-        android:background="@color/browser_toolbar_bg"
-        android:elevation="8dp"
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
-        android:paddingStart="4dp"
-        android:paddingEnd="4dp">
-
-        <ImageView android:id="@+id/btnBack" android:layout_width="0dp" android:layout_height="40dp" android:layout_weight="1" android:src="@drawable/ic_back" android:contentDescription="@string/app_name" android:padding="8dp" android:background="?attr/selectableItemBackgroundBorderless" app:tint="@color/text_primary" />
-        <ImageView android:id="@+id/btnForward" android:layout_width="0dp" android:layout_height="40dp" android:layout_weight="1" android:src="@drawable/ic_forward" android:contentDescription="@string/app_name" android:padding="8dp" android:background="?attr/selectableItemBackgroundBorderless" app:tint="@color/text_primary" />
-        <ImageView android:id="@+id/btnRefresh" android:layout_width="0dp" android:layout_height="40dp" android:layout_weight="1" android:src="@drawable/ic_refresh" android:contentDescription="@string/app_name" android:padding="8dp" android:background="?attr/selectableItemBackgroundBorderless" app:tint="@color/text_primary" />
-        <ImageView android:id="@+id/btnHome" android:layout_width="0dp" android:layout_height="40dp" android:layout_weight="1" android:src="@drawable/ic_home" android:contentDescription="@string/app_name" android:padding="8dp" android:background="?attr/selectableItemBackgroundBorderless" app:tint="@color/text_primary" />
-        <TextView android:id="@+id/btnTabs" android:layout_width="0dp" android:layout_height="40dp" android:layout_weight="1" android:text="1" android:textSize="14sp" android:textStyle="bold" android:textColor="@color/text_primary" android:gravity="center" android:background="?attr/selectableItemBackgroundBorderless" android:contentDescription="@string/app_name" />
-        <ImageView android:id="@+id/btnMenu" android:layout_width="0dp" android:layout_height="40dp" android:layout_weight="1" android:src="@drawable/ic_menu" android:contentDescription="@string/app_name" android:padding="8dp" android:background="?attr/selectableItemBackgroundBorderless" app:tint="@color/text_primary" />
-
-    </LinearLayout>
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

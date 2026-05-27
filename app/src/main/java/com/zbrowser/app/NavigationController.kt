@@ -42,10 +42,7 @@ class NavigationController(
     }
 
     fun setupNavigationButtons() {
-        binding.btnBack.setOnClickListener { goBack() }
-        binding.btnForward.setOnClickListener { goForward() }
-        binding.btnRefresh.setOnClickListener { refresh() }
-        binding.btnHome.setOnClickListener { loadUrl(TabManager.HOME_URL) }
+        // Navigation buttons removed - using swipe gesture and menu instead
     }
 
     fun animateProgress(targetProgress: Int) {
@@ -94,8 +91,7 @@ class NavigationController(
     }
 
     fun updateNavigationButtons() {
-        binding.btnBack.alpha = if (currentWebView()?.canGoBack() == true) 1.0f else 0.4f
-        binding.btnForward.alpha = if (currentWebView()?.canGoForward() == true) 1.0f else 0.4f
+        // Navigation buttons removed - using swipe gesture and menu instead
     }
 
     fun updateSslIcon(url: String) {

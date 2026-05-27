@@ -98,15 +98,7 @@ class TabUiController(
     }
 
     fun setupTabLayout() {
-        binding.tabLayout.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
-            override fun onTabSelected(tab: TabLayout.Tab) {
-                val i = tab.position
-                val tabs = tabManager.tabs
-                if (i < tabs.size) switchToTab(tabs[i].id)
-            }
-            override fun onTabUnselected(tab: TabLayout.Tab) {}
-            override fun onTabReselected(tab: TabLayout.Tab) {}
-        })
+        // Tab layout removed - using swipe gesture to show tab icons
     }
 
     fun onTrimMemory(level: Int) {
@@ -193,11 +185,6 @@ class TabUiController(
         }
 
         binding.webViewContainer.addView(webView)
-        val tabView = createTabView(activity.getString(R.string.new_tab))
-        binding.tabLayout.addTab(
-            binding.tabLayout.newTab().apply { customView = tabView },
-            false
-        )
         webView.loadUrl(url)
         switchToTab(tab.id)
         updateTabCount()
@@ -230,10 +217,6 @@ class TabUiController(
         navigationController.setUrlBarText(tab.url)
         navigationController.updateSslIcon(tab.url)
 
-        val idx = tabManager.indexOf(tab)
-        if (idx >= 0 && idx < binding.tabLayout.tabCount) {
-            binding.tabLayout.getTabAt(idx)?.select()
-        }
         navigationController.updateNavigationButtons()
     }
 
@@ -248,15 +231,11 @@ class TabUiController(
         val nextTab = tabManager.closeTab(tabId)
 
         if (nextTab == null) {
-            binding.tabLayout.removeAllTabs()
             currentWebView = null
             addNewTab(TabManager.HOME_URL)
             return
         }
 
-        if (closedIdx >= 0 && closedIdx < binding.tabLayout.tabCount) {
-            binding.tabLayout.removeTabAt(closedIdx)
-        }
         switchToTab(nextTab.id)
         updateTabCount()
     }
@@ -275,7 +254,6 @@ class TabUiController(
                     .setPositiveButton(R.string.close_all) { _, _ ->
                         binding.webViewContainer.removeAllViews()
                         tabManager.closeAllTabs()
-                        binding.tabLayout.removeAllTabs()
                         currentWebView = null
                         addNewTab(TabManager.HOME_URL)
                     }
@@ -287,7 +265,7 @@ class TabUiController(
     }
 
     private fun updateTabCount() {
-        binding.btnTabs.text = tabManager.tabs.size.toString()
+        // Tab count display removed - using swipe gesture to show tabs
     }
 
     @SuppressLint("SetJavaScriptEnabled")
@@ -364,11 +342,6 @@ class TabUiController(
             if (tab != null) {
                 tab.title = state.title
                 binding.webViewContainer.addView(webView)
-                val tabView = createTabView(state.title)
-                binding.tabLayout.addTab(
-                    binding.tabLayout.newTab().apply { customView = tabView },
-                    false
-                )
 
                 if (state.id == activeId) {
                     webView.loadUrl(state.url)

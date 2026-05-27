@@ -218,7 +218,6 @@ class BrowserMenuController(
                 binding.webViewContainer.removeAllViews()
                 tabManager.tabs.forEach { it.webView?.clearCache(true) }
                 tabManager.closeAllTabs()
-                binding.tabLayout.removeAllTabs()
                 currentWebView()?.let { tabUiController.currentWebView = null }
                 if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
                     android.webkit.CookieManager.getInstance().removeAllCookies { }

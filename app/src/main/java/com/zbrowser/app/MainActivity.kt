@@ -5,12 +5,14 @@ import android.content.Intent
 import android.net.http.SslError
 import android.os.Bundle
 import android.view.KeyEvent
+import android.view.MotionEvent
 import android.webkit.SslErrorHandler
 import android.webkit.WebView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.tabs.TabLayout
@@ -118,9 +120,9 @@ class MainActivity : AppCompatActivity(), BrowserWebViewClient.Callback {
 
         setupToolbar()
         navigationController.setupUrlBar()
-        setupBottomBar()
+        setupMenuButton()
+        setupSwipeGesture()
         navigationController.setupSwipeRefresh()
-        tabUiController.setupTabLayout()
 
         // Check for crash logs from previous session
         browserMenuController.checkForCrash()
@@ -215,11 +217,112 @@ class MainActivity : AppCompatActivity(), BrowserWebViewClient.Callback {
 
 
 
-    private fun setupBottomBar() {
-        navigationController.setupNavigationButtons()
-        binding.btnTabs.setOnClickListener { showTabSwitcher() }
+    private fun setupMenuButton() {
         binding.btnMenu.setOnClickListener { browserMenuController.showBrowserMenu() }
-        binding.fabNewTab.setOnClickListener { addNewTab(TabManager.HOME_URL) }
+        binding.btnAddTab.setOnClickListener { addNewTab(TabManager.HOME_URL) }
+    }
+
+    private fun setupSwipeGesture() {
+        var startX = 0f
+        var isDragging = false
+
+        binding.webViewContainer.setOnTouchListener { _, event ->
+            when (event.action) {
+                android.view.MotionEvent.ACTION_DOWN -> {
+                    startX = event.x
+                    isDragging = false
+                }
+                android.view.MotionEvent.ACTION_MOVE -> {
+                    val deltaX = event.x - startX
+                    if (deltaX > 100 && !isDragging) {
+                        isDragging = true
+                        showTabBar()
+                    }
+                }
+                android.view.MotionEvent.ACTION_UP -> {
+                    if (!isDragging) {
+                        hideTabBar()
+                    }
+                }
+            }
+            false
+        }
+    }
+
+    private fun showTabBar() {
+        binding.tabBar.visibility = android.view.View.VISIBLE
+        binding.tabBar.animate()
+            .translationY(0f)
+            .setDuration(200)
+            .start()
+        updateTabIcons()
+    }
+
+    private fun hideTabBar() {
+        binding.tabBar.animate()
+            .translationY(-binding.tabBar.height.toFloat())
+            .setDuration(200)
+            .withEndAction { binding.tabBar.visibility = android.view.View.GONE }
+            .start()
+    }
+
+    private fun updateTabIcons() {
+        binding.tabIconsContainer.removeAllViews()
+        val tabs = tabManager.tabs
+
+        tabs.forEach { tab ->
+            val icon = createTabIcon(tab)
+            binding.tabIconsContainer.addView(icon)
+        }
+    }
+
+    private fun createTabIcon(tab: BrowserTab): android.view.View {
+        val density = resources.displayMetrics.density
+        val size = (36 * density).toInt()
+
+        val container = android.widget.FrameLayout(this).apply {
+            layoutParams = android.widget.LinearLayout.LayoutParams(size, size).apply {
+                marginStart = (4 * density).toInt()
+                marginEnd = (4 * density).toInt()
+            }
+        }
+
+        val circle = android.view.View(this).apply {
+            layoutParams = android.widget.FrameLayout.LayoutParams(size, size)
+            background = android.graphics.drawable.GradientDrawable().apply {
+                shape = android.graphics.drawable.GradientDrawable.OVAL
+                setColor(if (tab.id == tabManager.activeTabId)
+                    ContextCompat.getColor(context, R.color.colorPrimary)
+                else
+                    ContextCompat.getColor(context, R.color.text_secondary))
+            }
+        }
+        container.addView(circle)
+
+        val letter = android.widget.TextView(this).apply {
+            layoutParams = android.widget.FrameLayout.LayoutParams(
+                android.widget.FrameLayout.LayoutParams.MATCH_PARENT,
+                android.widget.FrameLayout.LayoutParams.MATCH_PARENT
+            )
+            gravity = android.view.Gravity.CENTER
+            text = if (tab.title.isNotEmpty()) tab.title.first().uppercase() else "N"
+            textSize = 14f
+            setTextColor(ContextCompat.getColor(context, android.R.color.white))
+        }
+        container.addView(letter)
+
+        container.setOnClickListener {
+            switchToTab(tab.id)
+            hideTabBar()
+        }
+
+        container.setOnLongClickListener {
+            closeTab(tab.id)
+            updateTabIcons()
+            true
+        }
+
+        return container
     }
 
     // === BrowserWebViewClient.Callback (OPTIMIZED) ===
@@ -240,11 +343,6 @@ class MainActivity : AppCompatActivity(), BrowserWebViewClient.Callback {
         tab?.let { t ->
             t.title = title
             t.url = url
-            val idx = tabManager.indexOf(t)
-            if (idx >= 0 && idx < binding.tabLayout.tabCount) {
-                val tab = binding.tabLayout.getTabAt(idx)
-                tab?.customView = tabUiController.createTabView(t.title)
-            }
             if (t.id == tabManager.activeTabId) {
                 navigationController.hideProgress()
                 navigationController.finishSwipeRefresh()
