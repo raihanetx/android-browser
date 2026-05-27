@@ -26,9 +26,12 @@ jobs:
     - name: Setup Gradle
       uses: gradle/actions/setup-gradle@v4
 
-    - name: Decode Keystore
+    - name: Generate Keystore
       run: |
-        echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > zbrowser-release.jks
+        keytool -genkey -v -keystore zbrowser-release.jks \
+          -keyalg RSA -keysize 2048 -validity 10000 \
+          -alias zbrowser -storepass zbrowser123 -keypass zbrowser123 \
+          -dname "CN=ZBrowser, OU=Development, O=ZBrowser, L=Unknown, ST=Unknown, C=US"
 
     - name: Build Debug APK
       run: ./gradlew assembleDebug
@@ -61,18 +64,22 @@ jobs:
         name: ZBrowser v4.1.${{ github.run_number }}
         body: |
           ## ZBrowser v4.1 - Release Build
-
+          
           Built from commit: ${{ github.sha }}
-
+          
           ### Features
           - Multi-tab browsing with smooth tab switching
-          - Built-in ad blocker
-          - Download manager
-          - Bookmark & history support
-          - Bottom tab bar on swipe (NEW!)
+          - Built-in ad blocker with CSS injection
+          - Download manager with notifications
+          - Bookmark & history support (Room DB)
+          - Bottom tab bar on swipe gesture
+          - Desktop mode toggle
+          - Find in page
+          - Popup blocker
+          - SSL certificate handling
           
           ### Downloads
-          - **ZBrowser-debug.apk** - Debug build
+          - **ZBrowser-debug.apk** - Debug build for testing
           - **ZBrowser-release.apk** - Signed release build
         files: |
           app/build/outputs/apk/debug/*.apk
