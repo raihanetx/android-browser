@@ -223,34 +223,38 @@ class MainActivity : AppCompatActivity(), BrowserWebViewClient.Callback {
     }
 
     private fun setupSwipeGesture() {
-        var startX = 0f
-        var isDragging = false
-        val threshold = 80
-
-        binding.webViewContainer.setOnTouchListener { _, event ->
-            when (event.action) {
-                android.view.MotionEvent.ACTION_DOWN -> {
-                    startX = event.x
-                    isDragging = false
-                    true
-                }
-                android.view.MotionEvent.ACTION_MOVE -> {
-                    val deltaX = event.x - startX
-                    if (deltaX > threshold && !isDragging) {
-                        isDragging = true
+        val gestureDetector = android.view.GestureDetector(this,
+            object : android.view.GestureDetector.SimpleOnGestureListener() {
+                
+                private val SWIPE_THRESHOLD = 100
+                private val SWIPE_VELOCITY_THRESHOLD = 100
+                
+                override fun onFling(
+                    e1: android.view.MotionEvent?,
+                    e2: android.view.MotionEvent,
+                    velocityX: Float,
+                    velocityY: Float
+                ): Boolean {
+                    if (e1 == null) return false
+                    val deltaX = e2.x - e1.x
+                    val deltaY = e2.y - e1.y
+                    
+                    // Only trigger on horizontal swipe (right)
+                    if (Math.abs(deltaX) > Math.abs(deltaY) && 
+                        deltaX > SWIPE_THRESHOLD && 
+                        Math.abs(velocityX) > SWIPE_VELOCITY_THRESHOLD) {
                         showTabBar()
+                        return true
                     }
-                    true
+                    return false
                 }
-                android.view.MotionEvent.ACTION_UP -> {
-                    if (!isDragging && binding.tabBar.visibility == android.view.View.VISIBLE) {
-                        hideTabBar()
-                    }
-                    isDragging = false
-                    true
-                }
-                else -> false
             }
+        )
+        
+        // Apply to the CoordinatorLayout to capture all touches
+        binding.root.setOnTouchListener { _, event ->
+            gestureDetector.onTouchEvent(event)
+            false // Don't consume, let children handle too
         }
     }
 
@@ -267,9 +271,11 @@ class MainActivity : AppCompatActivity(), BrowserWebViewClient.Callback {
     private fun hideTabBar() {
         binding.tabBar.animate()
             .translationY(binding.tabBar.height.toFloat())
-            .setDuration(150)
+            .setDuration(200)
             .setInterpolator(android.view.animation.AccelerateInterpolator())
-            .withEndAction { binding.tabBar.visibility = android.view.View.GONE }
+            .withEndAction { 
+                binding.tabBar.visibility = android.view.View.GONE 
+            }
             .start()
     }
 

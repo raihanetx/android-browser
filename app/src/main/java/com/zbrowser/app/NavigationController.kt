@@ -39,6 +39,8 @@ class NavigationController(
         binding.swipeRefresh.setOnChildScrollUpCallback { _, _ ->
             currentWebView()?.let { it.canScrollVertically(-1) } ?: false
         }
+        // Disable SwipeRefreshLayout to avoid conflict with horizontal swipe
+        binding.swipeRefresh.isEnabled = false
     }
 
     fun setupNavigationButtons() {
