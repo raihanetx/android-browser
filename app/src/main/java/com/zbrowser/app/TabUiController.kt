@@ -277,15 +277,17 @@ class TabUiController(
         tab.isDesktopMode = !tab.isDesktopMode
         val isDesktop = tab.isDesktopMode
         currentWebView?.let { wv ->
-            val settings = wv.settings
-            if (isDesktop) {
-                settings.userAgentString = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36"
+            // Apply mode settings using the static method
+            BrowserWebViewClient.applyModeSettings(wv.settings, isDesktop, mobileUserAgent)
+            
+            // Save current URL and reload
+            val currentUrl = wv.url
+            if (currentUrl != null) {
+                wv.loadUrl(currentUrl)
             } else {
-                settings.userAgentString = mobileUserAgent ?: settings.userAgentString
+                wv.reload()
             }
-            settings.useWideViewPort = true
-            settings.loadWithOverviewMode = true
-            wv.reload()
+            
             Toast.makeText(
                 activity,
                 if (isDesktop) R.string.desktop_mode_on else R.string.mobile_mode_on,

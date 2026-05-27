@@ -236,8 +236,8 @@ class MainActivity : AppCompatActivity(), BrowserWebViewClient.Callback {
                     val deltaX = e2.x - e1.x
                     val deltaY = e2.y - e1.y
                     
-                    // Only trigger on horizontal swipe (right) - more lenient threshold
-                    if (Math.abs(deltaX) > Math.abs(deltaY) && deltaX > 50) {
+                    // Swipe LEFT (right-to-left) to show tab bar
+                    if (Math.abs(deltaX) > Math.abs(deltaY) && deltaX < -50) {
                         showTabBar()
                         return true
                     }
