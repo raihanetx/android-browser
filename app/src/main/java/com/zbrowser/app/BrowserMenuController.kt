@@ -48,6 +48,7 @@ class BrowserMenuController(
                 activity.getString(R.string.find_in_page),
                 if (adBlocker.isEnabled) activity.getString(R.string.ad_blocker_off) else activity.getString(R.string.ad_blocker_on),
                 if (popupBlocker.isEnabled) activity.getString(R.string.popup_blocker_off) else activity.getString(R.string.popup_blocker_on),
+                "Show Tabs",
                 activity.getString(R.string.settings)
             )
             MaterialAlertDialogBuilder(activity)
@@ -63,7 +64,8 @@ class BrowserMenuController(
                         6 -> findInPage()
                         7 -> toggleAdBlocker()
                         8 -> togglePopupBlocker()
-                        9 -> showSettings()
+                        9 -> (activity as MainActivity).showTabBar()
+                        10 -> showSettings()
                     }
                 }
                 .show()
