@@ -131,6 +131,9 @@ class TabUiController(
         s.allowContentAccess = false
         s.loadsImagesAutomatically = true
         s.cacheMode = WebSettings.LOAD_DEFAULT
+        s.blockNetworkImage = false
+        s.blockNetworkLoads = false
+        s.defaultTextEncodingName = "UTF-8"
 
         if (mobileUserAgent == null) {
             mobileUserAgent = s.userAgentString
@@ -274,7 +277,14 @@ class TabUiController(
         tab.isDesktopMode = !tab.isDesktopMode
         val isDesktop = tab.isDesktopMode
         currentWebView?.let { wv ->
-            BrowserWebViewClient.applyModeSettings(wv.settings, isDesktop, mobileUserAgent)
+            val settings = wv.settings
+            if (isDesktop) {
+                settings.userAgentString = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36"
+            } else {
+                settings.userAgentString = mobileUserAgent ?: settings.userAgentString
+            }
+            settings.useWideViewPort = true
+            settings.loadWithOverviewMode = true
             wv.reload()
             Toast.makeText(
                 activity,

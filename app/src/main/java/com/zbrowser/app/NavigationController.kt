@@ -109,7 +109,11 @@ class NavigationController(
     }
 
     fun setUrlBarText(url: String) {
-        binding.urlBar.setText(url)
+        val cleanUrl = url
+            .removePrefix("https://")
+            .removePrefix("http://")
+            .removeSuffix("/")
+        binding.urlBar.setText(cleanUrl)
     }
 
     fun showProgress() {

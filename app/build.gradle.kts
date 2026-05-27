@@ -29,23 +29,15 @@ android {
 
     signingConfigs {
         create("release") {
-            val ksFile = System.getenv("KEYSTORE_FILE")
-            val ksPassword = System.getenv("KEYSTORE_PASSWORD")
-            val ksAlias = System.getenv("KEY_ALIAS")
-            val ksKeyPassword = System.getenv("KEY_PASSWORD")
+            val ksFile = System.getenv("KEYSTORE_FILE") ?: "zbrowser-release.jks"
+            val ksPassword = System.getenv("KEYSTORE_PASSWORD") ?: "zbrowser123"
+            val ksAlias = System.getenv("KEY_ALIAS") ?: "zbrowser"
+            val ksKeyPassword = System.getenv("KEY_PASSWORD") ?: "zbrowser123"
 
-            if (ksFile != null) {
-                storeFile = rootProject.file(ksFile)
-            }
-            if (ksPassword != null) {
-                storePassword = ksPassword
-            }
-            if (ksAlias != null) {
-                keyAlias = ksAlias
-            }
-            if (ksKeyPassword != null) {
-                keyPassword = ksKeyPassword
-            }
+            storeFile = rootProject.file(ksFile)
+            storePassword = ksPassword
+            keyAlias = ksAlias
+            keyPassword = ksKeyPassword
         }
     }
 

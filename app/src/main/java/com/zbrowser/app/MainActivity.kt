@@ -225,27 +225,32 @@ class MainActivity : AppCompatActivity(), BrowserWebViewClient.Callback {
     private fun setupSwipeGesture() {
         var startX = 0f
         var isDragging = false
+        val threshold = 80
 
         binding.webViewContainer.setOnTouchListener { _, event ->
             when (event.action) {
                 android.view.MotionEvent.ACTION_DOWN -> {
                     startX = event.x
                     isDragging = false
+                    true
                 }
                 android.view.MotionEvent.ACTION_MOVE -> {
                     val deltaX = event.x - startX
-                    if (deltaX > 100 && !isDragging) {
+                    if (deltaX > threshold && !isDragging) {
                         isDragging = true
                         showTabBar()
                     }
+                    true
                 }
                 android.view.MotionEvent.ACTION_UP -> {
-                    if (!isDragging) {
+                    if (!isDragging && binding.tabBar.visibility == android.view.View.VISIBLE) {
                         hideTabBar()
                     }
+                    isDragging = false
+                    true
                 }
+                else -> false
             }
-            false
         }
     }
 
@@ -253,18 +258,22 @@ class MainActivity : AppCompatActivity(), BrowserWebViewClient.Callback {
         binding.tabBar.visibility = android.view.View.VISIBLE
         binding.tabBar.animate()
             .translationY(0f)
-            .setDuration(200)
+            .setDuration(150)
+            .setInterpolator(android.view.animation.DecelerateInterpolator())
             .start()
         updateTabIcons()
     }
 
     private fun hideTabBar() {
         binding.tabBar.animate()
-            .translationY(-binding.tabBar.height.toFloat())
-            .setDuration(200)
+            .translationY(binding.tabBar.height.toFloat())
+            .setDuration(150)
+            .setInterpolator(android.view.animation.AccelerateInterpolator())
             .withEndAction { binding.tabBar.visibility = android.view.View.GONE }
             .start()
     }
+
+
 
     private fun updateTabIcons() {
         binding.tabIconsContainer.removeAllViews()
